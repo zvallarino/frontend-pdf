@@ -407,10 +407,10 @@ export default function HomePage() {
                           <div className="mt-1">
                             <span className="font-semibold">Word:</span>{' '}
                             <span className={KEYWORDS_CONFIG[instance.word]?.fail_if_found ? "text-red-600 font-bold" : "text-orange-600 font-semibold"}>{instance.word}</span>
-                            {' '}(matched: <span className="italic">"{instance.original_match}"</span>)
-                          </div>
+                            {' '}(matched: <span className="italic">&quot;{instance.original_match}&quot;</span>)
+                            </div>
                           <div className="mt-1 text-slate-600">
-                            <span className="font-semibold">Context:</span> "{instance.phrase}"
+                          <span className="font-semibold">Context:</span> &quot;{instance.phrase}&quot;
                           </div>
                         </li>
                       ))
