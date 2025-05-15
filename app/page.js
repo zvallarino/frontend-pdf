@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+//note added for understanding
 // Mirroring keywords for frontend styling (simplification)
 // Ensure this is kept in sync with your backend's keywords.json
 const KEYWORDS_CONFIG = {
