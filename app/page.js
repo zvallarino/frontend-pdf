@@ -34,11 +34,7 @@ const KEYWORDS_CONFIG = {
   "biologically female": { "fail_if_found": true },
   "biologically male": { "fail_if_found": true },
   "BIPOC": { "fail_if_found": true },
-  "Black": { "fail_if_found": true },
-  "breastfeed people": { "fail_if_found": true },
-  "breastfeed person": { "fail_if_found": true },
-  "chestfeed people": { "fail_if_found": true },
-  "chestfeed person": { "fail_if_found": true },
+  "black": { "fail_if_found": true },
   "clean energy": { "fail_if_found": true },
   "climate crisis": { "fail_if_found": true },
   "climate science": { "fail_if_found": true },
@@ -97,7 +93,7 @@ const KEYWORDS_CONFIG = {
   "gender ideology": { "fail_if_found": true },
   "gender-affirming care": { "fail_if_found": true },
   "genders": { "fail_if_found": true },
-  "Gulf of Mexico": { "fail_if_found": true },
+  "gulf of mexico": { "fail_if_found": true },
   "hate speech": { "fail_if_found": true },
   "health disparity": { "fail_if_found": true },
   "health equity": { "fail_if_found": true },
@@ -146,7 +142,6 @@ const KEYWORDS_CONFIG = {
   "oppression": { "fail_if_found": true },
   "oppressive": { "fail_if_found": true },
   "orientation": { "fail_if_found": true },
-  "people uterus": { "fail_if_found": true },
   "people-centered care": { "fail_if_found": true },
   "person-centered": { "fail_if_found": true },
   "person-centered care": { "fail_if_found": true },
@@ -204,13 +199,32 @@ const KEYWORDS_CONFIG = {
   "victims": { "fail_if_found": true },
   "vulnerable populations": { "fail_if_found": true },
   "women": { "fail_if_found": true },
-  "women and underrepresented": { "fail_if_found": true }
+  "women and underrepresented": { "fail_if_found": true },
+  "breastfeed people/person": { "fail_if_found": true },
+  "chestfeed people/person": { "fail_if_found": true },
+  "uterus with people/person": { "fail_if_found": true },
 };
+
+
+const API_BASE_URL_DEVELOPMENT = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL_PRODUCTION = 'https://zvallarino.pythonanywhere.com/api/v1';
+
+
+
 export default function HomePage() {
   const [selectedFiles, setSelectedFiles] = useState(null);
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+
+    // Determine the API URL based on the environment
+    const API_BASE_URL = process.env.NODE_ENV === 'production'
+    ? API_BASE_URL_PRODUCTION
+    : API_BASE_URL_DEVELOPMENT;
+
+  const API_ENDPOINT = `${API_BASE_URL}/check-document/`;
+  
 
   const handleFileChange = (event) => {
     const files = event.target.files;
@@ -248,7 +262,7 @@ export default function HomePage() {
     }
 
     try {
-      const response = await fetch('https://zvallarino.pythonanywhere.com/api/v1/check-document/', {
+      const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         body: formData,
       });
