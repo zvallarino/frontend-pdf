@@ -224,7 +224,6 @@ export default function HomePage() {
     : API_BASE_URL_DEVELOPMENT;
 
   const API_ENDPOINT = `${API_BASE_URL}/check-document/`;
-  
 
   const handleFileChange = (event) => {
     const files = event.target.files;
@@ -233,13 +232,13 @@ export default function HomePage() {
         if (!files[i].name.toLowerCase().endsWith('.pdf') && !files[i].name.toLowerCase().endsWith('.docx')) {
           setError(`File "${files[i].name}" is not a supported type (PDF or DOCX only). Please select again.`);
           setSelectedFiles(null);
-          event.target.value = null;
+          event.target.value = null; // Reset file input
           return;
         }
       }
       setSelectedFiles(files);
-      setResults([]);
-      setError('');
+      setResults([]); // Clear previous results
+      setError(''); // Clear previous errors
     } else {
       setSelectedFiles(null);
     }
@@ -273,12 +272,14 @@ export default function HomePage() {
         const errData = await response.json().catch(() => ({ detail: 'An unknown error occurred processing the request.' }));
         let errorMessage = `Server error: ${response.status}`;
         if (errData.detail) {
-         errorMessage += ` - ${errData.detail}`;
+          errorMessage += ` - ${errData.detail}`;
         } else if (errData.files && Array.isArray(errData.files)) {
-         errorMessage += ` - ${errData.files.join(', ')}`;
-        } else if (typeof errData === 'object') {
-         errorMessage += ` - ${JSON.stringify(errData)}`;
+          errorMessage += ` - Files with issues: ${errData.files.join(', ')}`;
+        } else if (typeof errData === 'object' && Object.keys(errData).length > 0) {
+          // Attempt to provide more specific error info if 'detail' or 'files' isn't present
+          errorMessage += ` - ${JSON.stringify(errData)}`;
         }
+        // else, the base 'An unknown error...' from catch() will be part of errData.detail if that path was taken
         throw new Error(errorMessage);
       }
 
@@ -315,9 +316,9 @@ export default function HomePage() {
               className="block w-full text-sm text-slate-500 border border-slate-300 rounded-lg cursor-pointer bg-slate-50 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
             />
             {selectedFiles && selectedFiles.length > 0 && (
-             <div className="mt-2 text-xs text-slate-500">
-               {selectedFiles.length} file(s) selected: {Array.from(selectedFiles).map(f => f.name).join(', ')}
-             </div>
+              <div className="mt-2 text-xs text-slate-500">
+                {selectedFiles.length} file(s) selected: {Array.from(selectedFiles).map(f => f.name).join(', ')}
+              </div>
             )}
           </div>
           <button
@@ -325,7 +326,7 @@ export default function HomePage() {
             disabled={isLoading || !selectedFiles || selectedFiles.length === 0}
             className="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition duration-150 ease-in-out"
           >
-            {isLoading ? "loading" : `Submit & Check ${selectedFiles ? selectedFiles.length : 0} File(s)`}
+            {isLoading ? "Loading..." : `Submit & Check ${selectedFiles ? selectedFiles.length : 0} File(s)`}
           </button>
         </form>
 
@@ -346,7 +347,7 @@ export default function HomePage() {
               </h2>
               <div className="space-y-8">
                 {results.map((fileResult, fileIndex) => (
-                  <div key={`summary-${fileIndex}`} className="p-4 rounded-lg bg-white shadow"> {/* Individual file summary card */}
+                  <div key={`summary-${fileResult.filename}-${fileIndex}`} className="p-4 rounded-lg bg-white shadow"> {/* Individual file summary card */}
                     {/* 1. File Title */}
                     <h3 className="text-lg font-semibold text-sky-700 mb-2">
                       File: <span className="font-mono break-all">{fileResult.filename}</span>
@@ -364,14 +365,14 @@ export default function HomePage() {
                           'bg-yellow-100 text-yellow-700' // For 'error' status
                         }`}
                       >
-                        {fileResult.status.toUpperCase()}
+                        {fileResult.status ? fileResult.status.toUpperCase() : 'UNKNOWN'}
                       </span>
                     </div>
 
                     {fileResult.status === 'error' && fileResult.error_message && (
-                     <p className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                         Processing Error: {fileResult.error_message}
-                     </p>
+                      <p className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                        Processing Error: {fileResult.error_message}
+                      </p>
                     )}
 
                     {/* 3. Failure Details (if status is FAIL for this file) */}
@@ -380,10 +381,10 @@ export default function HomePage() {
                         <h5 className="text-sm font-semibold text-red-700 mb-1">Failure Details:</h5>
                         <ul className="space-y-0.5 list-disc list-inside pl-1">
                           {fileResult.fail_summary.map((summaryItem, summaryIndex) => (
-                            <li key={summaryIndex} className="text-xs text-red-600">
+                            <li key={`fail-summary-${summaryIndex}`} className="text-xs text-red-600">
                               <span className="font-bold">{summaryItem.keyword}</span> found{' '}
                               <span className="font-bold">{summaryItem.count}</span> time(s) on page(s):{' '}
-                              <span className="font-bold">{summaryItem.pages.join(', ')}</span>.
+                              <span className="font-bold">{Array.isArray(summaryItem.pages) ? summaryItem.pages.join(', ') : 'N/A'}</span>.
                             </li>
                           ))}
                         </ul>
@@ -391,9 +392,9 @@ export default function HomePage() {
                     )}
                     {/* Message if file passed AND no keyword instances were found from WORDS_TO_CHECK */}
                     {fileResult.status === 'pass' && (!fileResult.found_instances || fileResult.found_instances.length === 0) && (
-                        <p className="text-xs text-slate-500 mt-2 p-2 bg-slate-50 rounded">
-                            No target keywords (from your list) were found in this document.
-                        </p>
+                      <p className="text-xs text-slate-500 mt-2 p-2 bg-slate-50 rounded">
+                        No target keywords (from your list) were found in this document.
+                      </p>
                     )}
                   </div>
                 ))}
@@ -408,38 +409,66 @@ export default function HomePage() {
                 </h2>
                 <div className="bg-slate-50 p-4 rounded-md shadow-inner">
                   <ul className="space-y-4">
-                    {results.map((fileResult) =>
-                      fileResult.found_instances && fileResult.found_instances.map((instance, instanceIndex) => (
-                        <li key={`${fileResult.filename}-${instanceIndex}`} className="text-sm text-slate-700 p-3 bg-white rounded shadow-sm border border-slate-200">
-                          <div className="font-semibold text-md text-sky-700 mb-1.5">
-                            From File: <span className="font-mono break-all">{fileResult.filename}</span>
-                          </div>
-                          <div className="font-medium text-slate-800">
-                            <span className="font-semibold">
-                              {fileResult.filename.toLowerCase().endsWith('.docx') ? 'Location in Document:' : 'Page:'}
-                            </span> {instance.page}
-                          </div>
-                          <div className="mt-1">
-                            <span className="font-semibold">Word:</span>{' '}
-                            <span className={KEYWORDS_CONFIG[instance.word]?.fail_if_found ? "text-red-600 font-bold" : "text-orange-600 font-semibold"}>{instance.word}</span>
-                            {' '}(matched: <span className="italic">&quot;{instance.original_match}&quot;</span>)
+                    {results.map((fileResult, fileIdx) =>
+                      fileResult.found_instances &&
+                      [...fileResult.found_instances] // Create a shallow copy for sorting
+                        .sort((a, b) => {
+                          const pageA = a.page;
+                          const pageB = b.page;
+                          
+                          // Try to parse as numbers for numeric sorting
+                          const pageNumA = parseInt(pageA, 10);
+                          const pageNumB = parseInt(pageB, 10);
+
+                          if (!isNaN(pageNumA) && !isNaN(pageNumB)) {
+                            return pageNumA - pageNumB; // Sort numbers numerically
+                          } else if (!isNaN(pageNumA) && isNaN(pageNumB)) {
+                            return -1; // Numbers before non-numbers
+                          } else if (isNaN(pageNumA) && !isNaN(pageNumB)) {
+                            return 1;  // Non-numbers after numbers
+                          } else {
+                            // If both are non-numeric or cannot be parsed, sort as strings
+                            // This handles DOCX locations like "Chapter 1", "Appendix A"
+                            if (typeof pageA === 'string' && typeof pageB === 'string') {
+                              return pageA.localeCompare(pageB);
+                            }
+                            return 0; // Fallback, maintain original order relative to each other
+                          }
+                        })
+                        .map((instance, instanceIndex) => (
+                          <li key={`${fileResult.filename}-${instance.word}-${instance.page}-${instanceIndex}`} className="text-sm text-slate-700 p-3 bg-white rounded shadow-sm border border-slate-200">
+                            <div className="font-semibold text-md text-sky-700 mb-1.5">
+                              From File: <span className="font-mono break-all">{fileResult.filename}</span>
                             </div>
-                          <div className="mt-1 text-slate-600">
-                          <span className="font-semibold">Context:</span> &quot;{instance.phrase}&quot;
-                          </div>
-                        </li>
-                      ))
+                            <div className="font-medium text-slate-800">
+                              <span className="font-semibold">
+                                {fileResult.filename.toLowerCase().endsWith('.docx') ? 'Location in Document:' : 'Page:'}
+                              </span> {instance.page}
+                            </div>
+                            <div className="mt-1">
+                              <span className="font-semibold">Word:</span>{' '}
+                              {/* Ensure KEYWORDS_CONFIG is defined in the scope or passed as a prop */}
+                              <span className={KEYWORDS_CONFIG && KEYWORDS_CONFIG[instance.word]?.fail_if_found ? "text-red-600 font-bold" : "text-orange-600 font-semibold"}>
+                                {instance.word}
+                              </span>
+                              {' '}(matched: <span className="italic">&quot;{instance.original_match}&quot;</span>)
+                            </div>
+                            <div className="mt-1 text-slate-600">
+                              <span className="font-semibold">Context:</span> &quot;{instance.phrase}&quot;
+                            </div>
+                          </li>
+                        ))
                     )}
                   </ul>
                 </div>
               </div>
             )}
             {!hasAnyDetailedInstances && results.length > 0 && (
-                 <div className="pt-8 border-t border-slate-400">
-                    <p className="text-slate-600 text-center p-4 bg-slate-100 rounded-md">
-                        No keyword instances found across any of the processed files.
-                    </p>
-                 </div>
+              <div className="pt-8 border-t border-slate-400">
+                <p className="text-slate-600 text-center p-4 bg-slate-100 rounded-md">
+                  No keyword instances found across any of the processed files.
+                </p>
+              </div>
             )}
           </div>
         )}
